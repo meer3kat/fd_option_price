@@ -37,23 +37,19 @@ v_e = max(s-K,0);
 
 for n=t_num:-1:2
     
-    vi(1) = 0;
+    vi(1,1) = 0;
     %ve(1,M)=Smax-K*exp(-r*(T-t(n-1)));
-    vi(M)=Smax-K*exp(-r*(T-t(n-1)));
+    vi(1,M)=Smax-K*exp(-r*(T-t(n-1)));
     
     
     ci = r*s/(2*delta_s) + 0.5*sigma^2*s.^2/(delta_s*delta_s);
     bi = -sigma^2*s.^2 /(delta_s*delta_s) - r;
     ai = -r*s/(2*delta_s) + 0.5*sigma^2*s.^2/(delta_s*delta_s);
     
-    D = diag(ai(2:end-2),-1)+ diag(bi(2:end-1)) + diag(ci(3:end-1),1);
+    D = diag(ai(2:end-2))+ diag(bi(2:end-1)) + diag(ci(3:end-1));
     bm = v_i(2:end-1);
-    bm = bm(:);
-    bm(1) = bm(1) - ai(1)*vi(1);
-    bm(end) = bm(end) - ci(end)*vi(M);
-    
-    vi(2:end-1) = D\bm;
-    v_i = vi;
+    bm(1,1) = bm(1) - ai(1)*vi(1);
+    bm
     
     
     %D = diag(ai(2:end-1),-1) + diag(bi(1:end-1)) + diag(ci(1:end-2),1);
@@ -61,7 +57,13 @@ for n=t_num:-1:2
     %B = B(2:end-1,2:end-1);
     %A = eye(size(D)) - delta_t*D;
     %A = A(2:end-1,2:end-1);
-
+    
+    ve(2:end-1) = A*v_e(2:end-1)';
+    vi(2:end-1) = B\v_i(2:end-1)';
+    
+    
+    v_e = ve;
+    v_i = vi;
 end
  
 
