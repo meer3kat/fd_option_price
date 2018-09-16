@@ -1,5 +1,17 @@
-%A2
-clear
+%% Assignment 2 - Finite difference methods to price European Options
+%
+% Written by Peili Guo (Peili.Guo.7645@student.uu.se) and 
+% Sijia Wang (Sijia.Wang.7090@student.uu.se)
+% This report is for Computational Finance: Pricing and Valuation
+% Assignment 2 Group 11. 
+%
+% In this project we implemented both explicit and implicit euler's method
+% in Matlab to price a European call option. We studied the convergency,
+% stability, computation cost and how the solution varies with \gamma. 
+% 
+clear all;
+close all;
+
 K = 15;
 r = 0.1;
 sigma = 0.25;
@@ -7,16 +19,18 @@ T = 0.5;
 gamma = 1;
 Smax = 4 * K;
 
-t_num = 100; %num of time-step
-M = 61;
+t_num = 100; %num of points in the time grid
+M = 61; % number of points in the space (price grid)
 
 t = linspace(0,T,t_num);
 s = linspace(0,Smax,M);
 delta_t = t(2)-t(1);
 delta_s = s(2)-s(1);
 
-last_v = max(s-K,0); 
-%% Euler explicit
+last_v = max(s-K,0); %setting boundary condition
+
+%% Euler explicit 
+%%%%%%%% in function ? 
 for n=t_num:-1:2
     v(1) = 0;
     v(M) = Smax-K*exp(-r*(T-t(n-1)));
@@ -27,14 +41,15 @@ for n=t_num:-1:2
     end
     last_v=v;
 end
+
 %% Euler implicit
 
 
-v_i = max(s-K,0); 
+[si,vi] = fdimplicit(K,r,sigma,T,gamma,t_num,M);
 
 %v_e = max(s-K,0);%?
 
-
+%{
 
 for n=t_num:-1:2
     
@@ -66,7 +81,7 @@ for n=t_num:-1:2
     %A = A(2:end-1,2:end-1);
 
 end
- 
+%} 
 
 
 %%  compare with exact solution
@@ -74,6 +89,8 @@ for i=1:M
     exact(i) = bsexact(sigma, r, K, T, s(i)); 
 end
 %% plots
+% plot with different size of t, s.
+% tictoc on time.
 %plot(s,last_v,'r*')
 plot(s,vi,'gd')
 hold on
@@ -81,6 +98,11 @@ plot(s,exact,'b')
 
 
  figure
- plot(s,abs(vi-exact),'r')
+ plot(s,abs(vi'-exact),'r')
  hold on
  plot(s,abs(v-exact),'b')
+ 
+ %% task to be done 
+ % plot with different size of t, s.
+ % tictoc on time.
+ % to plot V(sj) with different \gamma for sj = 15. 
