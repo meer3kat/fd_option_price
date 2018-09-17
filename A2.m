@@ -18,91 +18,148 @@ sigma = 0.25;
 T = 0.5;
 gamma = 1;
 Smax = 4 * K;
+tn = 6; %num of points in the time grid
+sn = 61; % number of points in the space (price grid)
+trange = [11 51 101 201 501];
+srange = [61 101 241 601 6001];
+count = 0;
+    % Euler explicit 6
+%for i = 1: length(trange)
+ 
+[dt1,ds1,se1,ve1] = fdemplicit(K,r,sigma,T,trange(1),sn);
 
-t_num = 100; %num of points in the time grid
-M = 61; % number of points in the space (price grid)
+[dt2,ds2,se2,ve2] = fdemplicit(K,r,sigma,T,trange(2),sn);
 
-t = linspace(0,T,t_num);
-s = linspace(0,Smax,M);
-delta_t = t(2)-t(1);
-delta_s = s(2)-s(1);
+[dt3,ds3,se3,ve3] = fdemplicit(K,r,sigma,T,trange(3),sn);
+tic
+[dt4,ds4,se4,ve4] = fdemplicit(K,r,sigma,T,trange(4),sn);
+toc
 
-last_v = max(s-K,0); %setting boundary condition
+% Euler implicit
+[dt1,ds1,si1,vi1] = fdimplicit(K,r,sigma,T,gamma,trange(1),sn);
+[dt2,ds2,si2,vi2] = fdimplicit(K,r,sigma,T,gamma,trange(2),sn);
+[dt3,ds3,si3,vi3] = fdimplicit(K,r,sigma,T,gamma,trange(3),sn);
+tic
+[dt4,ds4,si4,vi4] = fdimplicit(K,r,sigma,T,gamma,trange(4),sn);
+toc
+%exact solution
+for i=1:sn
+    exact1(i) = bsexact(sigma, r, K, T, si1(i));
+    exact2(i) = bsexact(sigma, r, K, T, si2(i));
+    exact3(i) = bsexact(sigma, r, K, T, si3(i));
+    exact4(i) = bsexact(sigma, r, K, T, si4(i));
+end
+% compute the largest error
+err_e1 = abs(ve1 - exact1);
+err_i1 = abs(vi1 - exact1);
+err_e2 = abs(ve2 - exact2);
+err_i2 = abs(vi2 - exact2);
+err_e3 = abs(ve3 - exact3);
+err_i3 = abs(vi3 - exact3);
+err_e4 = abs(ve4 - exact4);
+err_i4 = abs(vi4 - exact4);
+%end
 
-%% Euler explicit 
-%%%%%%%% in function ? 
-for n=t_num:-1:2
-    v(1) = 0;
-    v(M) = Smax-K*exp(-r*(T-t(n-1)));
-    for j=2:M-1
-        v(j)=last_v(j)+r*s(j)*delta_t/(2*delta_s)*(last_v(j+1)-last_v(j-1))...
-             +sigma^2*0.5*(s(j))^2*(delta_t/(delta_s^2))*(last_v(j+1)-...
-             2*last_v(j)+last_v(j-1))-delta_t*r*last_v(j);
+% plot 1 showing the stability of the results using explicit and implicit
+% method
+f1 = figure('position', [0,0,1000,450]);
+subplot(1,2,1);
+plot(se1,ve1,'r*-')
+hold on 
+plot(se3,ve3,'k+-')
+legend("dt =0.05", "dt = 0.005")
+xlabel('Price');
+ylabel('Value of Option');
+title({'results using different dt size with Euler Explicit FDM';' '});
+
+subplot(1,2,2);
+plot(si1,vi1,'r*-')
+hold on 
+plot(si3,vi3,'k+-')
+legend("dt =0.05", "dt = 0.005")
+xlabel('Price');
+ylabel('Value of Option');
+title({'results using different dt size with Euler Implicit FDM',' '});
+
+
+f2 = figure('position', [0, 0, 700, 500]);
+plot(si1,err_i1,'g')
+hold on 
+plot(si2,err_i2,'b')
+plot(si3,err_i3,'r')
+plot(si4,err_i4,'k')
+legend("dt = 0.05", "dt = 0.01", 'dt = 0.005', 'dt = 0.0025')
+xlabel('Price');
+ylabel('Absolute error');
+title('Absolute error using different time step sizes (ds = 1)', 'FontSize', 18);
+%% Accuracy using implicit method 
+count = 0 
+for tt = trange
+    count = count+1
+    [dtt,dst,sit,vi] = fdimplicit(K,r,sigma,T,gamma,tt,6001);
+    for i=1:length(sit)
+        exactt(i) = bsexact(sigma, r, K, T, sit(i));
     end
-    last_v=v;
+    dtplot(count) = dtt;
+    errtt(count) = max(abs(exactt - vi));
+end
+count = 0;
+for ss = srange
+    count = count+1
+    [dtt,dst,sit,vi] = fdimplicit(K,r,sigma,T,gamma,501,ss);
+    for i=1:length(sit)
+        exactt(i) = bsexact(sigma, r, K, T, sit(i));
+    end
+    dsplot(count) = dst;
+    errss(count) = max(abs(exactt - vi));
 end
 
-%% Euler implicit
+f4 = figure('position', [0,0,1000,450]);
+subplot(1,2,1);
+loglog(dtplot,errtt,'r*-')
+xlabel('dt');
+ylabel('max error');
+title({'max error vs dt (ds = 0.01)';' '});
+
+subplot(1,2,2);
+loglog(dsplot,errss,'b*-')
+xlabel('ds');
+ylabel('max error');
+title({'max error vs ds (dt = 0.001)';' '});
 
 
-[si,vi] = fdimplicit(K,r,sigma,T,gamma,t_num,M);
 
-%v_e = max(s-K,0);%?
-
-%{
-
-for n=t_num:-1:2
-    
-    vi(1) = 0;
-    %ve(1,M)=Smax-K*exp(-r*(T-t(n-1)));
-    vi(M)=Smax-K*exp(-r*(T-t(n-1)));
-    
-    
-    ci = r*s/(2*delta_s) + 0.5*sigma^2*s.^2/(delta_s*delta_s);
-    bi = -sigma^2*s.^2 /(delta_s*delta_s) - r-1/delta_t;
-    ai = -r*s/(2*delta_s) + 0.5*sigma^2*s.^2/(delta_s*delta_s);
-    
-    D = diag(ai(3:end-1),-1)+ diag(bi(2:end-1)) + diag(ci(2:end-2),1); %
-    %bm = v_i(2:end-1);
-    %bm = bm(:); 
-    %bm(1) = bm(1) - ai(1)*vi(1);
-    %bm(end) = bm(end) - ci(end)*vi(M);
-    bm=-1/delta_t*v_i(2:end-1);
-    bm(1) = bm(1) - ai(2)*vi(1);
-    bm(end) = bm(end) - ci(end-1)*vi(M);
-    vi(2:end-1) = D\bm';
-    v_i = vi;
-    
-    
-    %D = diag(ai(2:end-1),-1) + diag(bi(1:end-1)) + diag(ci(1:end-2),1);
-    %B = eye(size(D)) + delta_t*D;
-    %B = B(2:end-1,2:end-1);
-    %A = eye(size(D)) - delta_t*D;
-    %A = A(2:end-1,2:end-1);
-
+%% experiment with different gamma 
+count = 0;
+for g = 0.5:0.1:1
+    count = count + 1;
+    [dt,ds,sg,vjg(count,:)] = fdimplicit(K,r,sigma,T,g,101,61)
 end
-%} 
+f3 = figure('position', [0, 0, 700, 500]);
+plot(sg,vjg)
+xlim([10 20])
+legend("gamma = 0.5", "gamma = 0.6", 'gamma = 0.7', 'gamma = 0.8','gamma = 0.9','gamma = 1','Location','northwest')
+xlabel('Price');
+ylabel('Value of Option');
+title('V(s) changes when \gamma varies');
 
 
-%%  compare with exact solution
-for i=1:M
-    exact(i) = bsexact(sigma, r, K, T, s(i)); 
-end
 %% plots
 % plot with different size of t, s.
 % tictoc on time.
 %plot(s,last_v,'r*')
-plot(s,vi,'gd')
-hold on
-plot(s,exact,'b')
-
-
- figure
- plot(s,abs(vi'-exact),'r')
- hold on
- plot(s,abs(v-exact),'b')
- 
- %% task to be done 
- % plot with different size of t, s.
+% plot(s,vi,'gd')
+% 
+% hold on
+% plot(s,exact,'b')
+% plot(s,ve,'k*-')
+% 
+%  figure
+%  plot(s,abs(vi'-exact),'r')
+%  hold on
+%  plot(s,abs(ve-exact),'b')
+%  
+%  %% task to be done 
+%  % plot with different size of t, s.
  % tictoc on time.
  % to plot V(sj) with different \gamma for sj = 15. 
