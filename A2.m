@@ -20,8 +20,8 @@ gamma = 1;
 Smax = 4 * K;
 tn = 6; %num of points in the time grid
 sn = 61; % number of points in the space (price grid)
-trange = [11 51 101 201 501];
-srange = [61 101 241 601 6001];
+trange = [11 51 101 151 201];
+srange = [61 121 181 241 301];
 count = 0;
     % Euler explicit 6
 %for i = 1: length(trange)
@@ -95,8 +95,9 @@ title('Absolute error using different time step sizes (ds = 1)', 'FontSize', 18)
 %% Accuracy using implicit method 
 count = 0 
 for tt = trange
+    exactt=[];
     count = count+1
-    [dtt,dst,sit,vi] = fdimplicit(K,r,sigma,T,gamma,tt,6001);
+    [dtt,dst,sit,vi] = fdimplicit(K,r,sigma,T,gamma,tt,301);
     for i=1:length(sit)
         exactt(i) = bsexact(sigma, r, K, T, sit(i));
     end
@@ -105,8 +106,9 @@ for tt = trange
 end
 count = 0;
 for ss = srange
+    exactt=[];
     count = count+1
-    [dtt,dst,sit,vi] = fdimplicit(K,r,sigma,T,gamma,501,ss);
+    [dtt,dst,sit,vi] = fdimplicit(K,r,sigma,T,gamma,301,ss);
     for i=1:length(sit)
         exactt(i) = bsexact(sigma, r, K, T, sit(i));
     end
@@ -119,13 +121,13 @@ subplot(1,2,1);
 loglog(dtplot,errtt,'r*-')
 xlabel('dt');
 ylabel('max error');
-title({'max error vs dt (ds = 0.01)';' '});
+title({'max error vs dt (ds = 0.2)';' '});
 
 subplot(1,2,2);
 loglog(dsplot,errss,'b*-')
 xlabel('ds');
 ylabel('max error');
-title({'max error vs ds (dt = 0.001)';' '});
+title({'max error vs ds (dt = 0.0025)';' '});
 
 
 
