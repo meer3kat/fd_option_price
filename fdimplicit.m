@@ -1,4 +1,4 @@
-function [s,vj] = fdimplicit(K,r,sigma,T,g,tn,sn)
+function [dt,ds,s,vj] = fdimplicit(K,r,sigma,T,g,tn,sn)
 
 %% function to compute the call option price use implicit euler 
 % parameter
@@ -41,4 +41,5 @@ for n = tn:-1:2
     v(2:end-1) = D\f;
     vj = v;
 end
+vj = vj';
 end
