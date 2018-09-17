@@ -5,10 +5,12 @@
 % This report is for Computational Finance: Pricing and Valuation
 % Assignment 2 Group 11. 
 %
-% In this project we implemented both explicit and implicit euler's method
-% in Matlab to price a European call option. We studied the convergency,
-% stability, computation cost and how the solution varies with \gamma. 
-% 
+% In this project we implemented both explicit and implicit Euler's method
+% in Matlab to price an European call option under CEV-model. We studied
+% the convergency, stability, computational cost and how the solution
+% varies with \gamma. 
+
+%% 1. Stability and accuracy of Explicit and Implicit Euler's method
 clear all;
 close all;
 
@@ -22,27 +24,26 @@ tn = 6; %num of points in the time grid
 sn = 61; % number of points in the space (price grid)
 trange = [11 51 101 151 201];
 srange = [61 121 181 241 301];
-count = 0;
-    % Euler explicit 6
-%for i = 1: length(trange)
- 
-[dt1,ds1,se1,ve1] = fdemplicit(K,r,sigma,T,trange(1),sn);
 
-[dt2,ds2,se2,ve2] = fdemplicit(K,r,sigma,T,trange(2),sn);
-
-[dt3,ds3,se3,ve3] = fdemplicit(K,r,sigma,T,trange(3),sn);
-tic
-[dt4,ds4,se4,ve4] = fdemplicit(K,r,sigma,T,trange(4),sn);
+% set ds = 1, and change different to different dt 
+% explicit Euler's method
+[dt1,ds1,se1,ve1] = fdexplicit(K,r,sigma,T,trange(1),sn);
+[dt2,ds2,se2,ve2] = fdexplicit(K,r,sigma,T,trange(2),sn);
+[dt3,ds3,se3,ve3] = fdexplicit(K,r,sigma,T,trange(3),sn);
+tic %time it to see computational cost
+disp('calling explicit function with dt = 0.0033, ds = 1')
+[dt4,ds4,se4,ve4] = fdexplicit(K,r,sigma,T,trange(4),sn);
 toc
 
-% Euler implicit
+% implicit Euler's method
 [dt1,ds1,si1,vi1] = fdimplicit(K,r,sigma,T,gamma,trange(1),sn);
 [dt2,ds2,si2,vi2] = fdimplicit(K,r,sigma,T,gamma,trange(2),sn);
 [dt3,ds3,si3,vi3] = fdimplicit(K,r,sigma,T,gamma,trange(3),sn);
 tic
+disp('calling implicit function with dt = 0.0033, ds = 1')
 [dt4,ds4,si4,vi4] = fdimplicit(K,r,sigma,T,gamma,trange(4),sn);
 toc
-%exact solution
+% analytical solution when gamma = 1
 for i=1:sn
     exact1(i) = bsexact(sigma, r, K, T, si1(i));
     exact2(i) = bsexact(sigma, r, K, T, si2(i));
@@ -58,11 +59,11 @@ err_e3 = abs(ve3 - exact3);
 err_i3 = abs(vi3 - exact3);
 err_e4 = abs(ve4 - exact4);
 err_i4 = abs(vi4 - exact4);
-%end
+
 
 % plot 1 showing the stability of the results using explicit and implicit
 % method
-f1 = figure('position', [0,0,1000,450]);
+f1 = figure('position', [0,0,1000,500]);
 subplot(1,2,1);
 plot(se1,ve1,'r*-')
 hold on 
@@ -92,11 +93,27 @@ legend("dt = 0.05", "dt = 0.01", 'dt = 0.005', 'dt = 0.0025')
 xlabel('Price');
 ylabel('Absolute error');
 title('Absolute error using different time step sizes (ds = 1)', 'FontSize', 18);
-%% Accuracy using implicit method 
-count = 0 
+
+% We can observe that the the explicit method is unstable if dt/ds is
+% large. in order to have solution that converges, we need to control
+% dt/ds. for example, at dt/ds >= 0.01 the solution is unstable.
+% When we decreased dt/ds to below 0.005, the solution is stable. However
+% the implicit method is always stable and we can see the absolute error
+% did not explode for the different dt we experimented. The computational
+% cost is more expensive for the implicit method compare to the explicit
+% method (with the same dt and ds), because we need to compute the 
+% inverse of a tridiagonal matrix. 
+% But the good part of choose the implicit method is that we are not
+% restricted to a small dt when using a small ds, which might cause a
+% problem if the T for option is large, e.g. a long term option. 
+
+%% 2. Accuracy using implicit method 
+% Below, we will experiment the accuracy use only the Euler's implicit
+% method, that the dt is not restricted to ds for the solution to converge.
+count = 0;
 for tt = trange
     exactt=[];
-    count = count+1
+    count = count+1;
     [dtt,dst,sit,vi] = fdimplicit(K,r,sigma,T,gamma,tt,301);
     for i=1:length(sit)
         exactt(i) = bsexact(sigma, r, K, T, sit(i));
@@ -107,7 +124,7 @@ end
 count = 0;
 for ss = srange
     exactt=[];
-    count = count+1
+    count = count+1;
     [dtt,dst,sit,vi] = fdimplicit(K,r,sigma,T,gamma,201,ss);
     for i=1:length(sit)
         exactt(i) = bsexact(sigma, r, K, T, sit(i));
@@ -129,13 +146,18 @@ xlabel('ds');
 ylabel('max error');
 title({'max error vs ds (dt = 0.0025)';' '});
 
+% We set the ds to 0.2 and experiment the error with different dt. the
+% max error decrease linearly. The same can be observed when we set dt to
+% 0.0025 and experiment with different ds. 
 
+%% 3. Experiment with different gamma 
+% we set the gamma to between 0.5 and 1 to see how the value of option
+% will behave.
 
-%% experiment with different gamma 
 count = 0;
 for g = 0.5:0.1:1
     count = count + 1;
-    [dt,ds,sg,vjg(count,:)] = fdimplicit(K,r,sigma,T,g,101,61)
+    [dt,ds,sg,vjg(count,:)] = fdimplicit(K,r,sigma,T,g,101,61);
 end
 f3 = figure('position', [0, 0, 700, 500]);
 plot(sg,vjg)
@@ -145,23 +167,13 @@ xlabel('Price');
 ylabel('Value of Option');
 title('V(s) changes when \gamma varies');
 
+% Here, we only plot the value of option when the strike price is between
+% 10 and 20. we see that with larger \gamma, the value of option is higher.
+% This is due to the fact that a larger \gamma means the stochastic part of
+% the CEV model will be larger, which correcponding to a bigger volatility.
+% Thus a higher value of option. 
 
-%% plots
-% plot with different size of t, s.
-% tictoc on time.
-%plot(s,last_v,'r*')
-% plot(s,vi,'gd')
-% 
-% hold on
-% plot(s,exact,'b')
-% plot(s,ve,'k*-')
-% 
-%  figure
-%  plot(s,abs(vi'-exact),'r')
-%  hold on
-%  plot(s,abs(ve-exact),'b')
-%  
-%  %% task to be done 
-%  % plot with different size of t, s.
- % tictoc on time.
- % to plot V(sj) with different \gamma for sj = 15. 
+%% 4. Finite difference solver called in script
+
+dbtype('fdexplicit.m')
+dbtype('fdimplicit.m')
